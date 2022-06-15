@@ -72,15 +72,16 @@ export default {
   }),
   methods: {
     signIn() {
+      this.form.errors = []
       auth.signInWithEmailAndPassword(this.form.fields.email, this.form.fields.password).catch(error => {
         this.form.errors.push(error.message);
       });
     }
   },
-  created() {
-    if (this.$store.getters.user.authenticated) {
-      this.$router.replace({name: 'Home'})
-    }
-  }
+  // created() {
+  //   if (this.$store.getters.user.authenticated) {
+  //     this.$router.replace({name: 'Home'})
+  //   }
+  // }
 }
 </script>

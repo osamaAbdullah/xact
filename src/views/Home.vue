@@ -56,7 +56,9 @@
               </td>
               <td class="px-6 font-medium">
                 <label class="inline-flex items-center justify-center text-2xl">
-                  <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" @change="activity.completed ? markAsCompleted(activity.id, index) : markAsPending(activity.id, index)" v-model="activity.completed">
+                  <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600"
+                         @change="activity.completed ? markAsCompleted(activity.id, index) : markAsPending(activity.id, index)"
+                         v-model="activity.completed">
                   <span class="ml-2 text-gray-700">Completed</span>
                 </label>
               </td>
@@ -65,6 +67,38 @@
             <!-- More people... -->
             </tbody>
           </table>
+          <div id="cards" class="flex flex-col items-center select-none">
+            <template v-for="(activity, index) in activities" :key="activity.id">
+              <div v-if="activity.loading" class="rounded-3xl flex flex-col justify-center items-center p-5 my-3 bg-gray-200 w-1/2">
+                <div v-text="activity.title" class="text-2xl text-gray-400 text-center p-1"></div>
+                <div v-text="activity.mulct" class="text-gray-400 text-center p-1"></div>
+                <div >
+                  <div class="py-2 px-4 w-full bg-gray-300 text-sm text-center text-gray-400 rounded-full">Processing...</div>
+                  <div class="italic p-2 text-gray-400 text-xs text-center">Please wait...</div>
+                </div>
+              </div>
+              <template v-else>
+                <div v-if="activity.completed" @click="markAsPending(activity.id, index)"
+                     class="rounded-3xl flex flex-col justify-center items-center p-5 my-3 bg-green-200 w-1/2">
+                  <div v-text="activity.title" class="text-2xl text-green-700 text-center p-1"></div>
+                  <div v-text="activity.mulct" class="text-green-700 text-center p-1"></div>
+                  <div >
+                    <div class="p-2 w-full bg-green-300 text-sm text-center text-green-600 rounded-full">Completed</div>
+                    <div class="italic p-2 text-green-500 text-xs text-center">click to toggle</div>
+                  </div>
+                </div>
+                <div v-else @click="markAsCompleted(activity.id, index)"
+                     class="rounded-3xl flex flex-col justify-center items-center p-5 my-3 bg-red-200 w-1/2">
+                  <div v-text="activity.title" class="text-2xl text-red-700 text-center p-1"></div>
+                  <div v-text="activity.mulct" class="text-red-700 text-center p-1"></div>
+                  <div >
+                    <div class="p-2 w-full bg-red-300 text-sm text-center text-red-600 rounded-full">Pending</div>
+                    <div class="italic p-2 text-red-500 text-xs text-center">click to toggle</div>
+                  </div>
+                </div>
+              </template>
+            </template>
+          </div>
         </div>
       </div>
     </div>
@@ -93,16 +127,26 @@ export default {
   }),
   methods: {
     markAsPending(activityId, index) {
-      db.collection(this.ca)
-          .doc(this.completedActivity())
-          .delete()
-      this.activities[index].completed = false;
+      if (confirm('Are you sure you didn\'t complete the activity yet?')) {
+        this.activities[index].loading = true
+        db.collection(this.ca)
+            .doc(this.completedActivity(activityId))
+            .delete()
+            .then(_ => {
+              this.activities[index].completed = false
+              this.activities[index].loading = false
+            })
+      }
     },
     markAsCompleted(activityId, index) {
+      this.activities[index].loading = true
       db.collection(this.ca)
-          .doc(this.completedActivity())
+          .doc(this.completedActivity(activityId))
           .set({activityId: activityId, userId: this.$store.getters.user.uid, dateTime: new Date()})
-      this.activities[index].completed = true;
+          .then(_ => {
+            this.activities[index].loading = false
+            this.activities[index].completed = true
+          })
     },
     completedActivity(activityId) {
       return `${activityId}__${this.$store.getters.user.uid}__${moment().format('YYYY_MM_DD')}`;
@@ -110,7 +154,7 @@ export default {
   },
   computed: {
     status() {
-      return this.ratio * 100 || 0;
+      return Math.round(this.ratio * 100) || 0;
     },
     ratio() {
       return this.activities.filter((activity) => activity.completed).length / this.activities.length
@@ -120,15 +164,18 @@ export default {
     db.collection('user_activity')
         .where('userId', '==', this.$store.getters.user.uid)
         .onSnapshot((querySnapshot) => {
+          this.activities = []
           querySnapshot.forEach((doc) => {
             db.collection('activities').doc(doc.data().activityId)
                 .onSnapshot(async (activity) => {
+                  if (!activity.data().status) return false
                   let doneActivity = await db.collection(this.ca)
-                      .doc(this.completedActivity())
+                      .doc(this.completedActivity(activity.id))
                       .get()
                   this.activities.unshift({
                     id: activity.id,
                     completed: doneActivity.data() !== undefined,
+                    loading: false,
                     ...activity.data(),
                   });
 
@@ -139,3 +186,17 @@ export default {
   }
 }
 </script>
+<style scoped>
+
+@media screen and (max-width: 1024px) {
+  table {
+    display: none !important;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  #cards {
+    display: none !important;
+  }
+}
+</style>

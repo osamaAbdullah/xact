@@ -19,6 +19,9 @@
                 Status
               </th>
               <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                myStatus
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Mulct
               </th>
               <th scope="col" class="relative px-6 py-3">
@@ -42,16 +45,28 @@
                 <div class="text-sm text-gray-500">{{ activity.type }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
+                 <span v-if="activity.status" class="px-2 select-none inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer bg-green-100 text-green-800">
+                  Active
+                </span>
+                <span v-else class="px-2 select-none inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer bg-red-100 text-red-800">
+                  Disabled
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                  {{ activity.status }}
+                  {{ activity.myStatus }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {{ activity.mulct }}
               </td>
               <td class="px-6 font-medium">
-                <button v-if="activity.joined" @click="leaveActivity(activity.id, index)" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full">Leave</button>
-                <button v-else @click="joinActivity(activity.id, index)" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full">Join</button>
+                <button v-if="activity.joined" @click="leaveActivity(activity.id, index)"
+                        class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full">Leave
+                </button>
+                <button v-else @click="joinActivity(activity.id, index)"
+                        class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full">Join
+                </button>
               </td>
             </tr>
             <!-- More people... -->
@@ -77,10 +92,11 @@ export default {
       db.collection('user_activity').doc(this.$store.getters.user.uid + '_' + activityId).set({
         joinedAt: new Date(),
         userId: this.$store.getters.user.uid,
+        lastCheck: new Date(),
         activityId,
       }).then(() => {
         this.activities[index].joined = true;
-        this.activities[index].status = 'joined ' + moment(new Date(), 'DD-MM-YYYY hh:mm:ss').fromNow();
+        this.activities[index].myStatus = 'joined ' + moment(new Date(), 'DD-MM-YYYY hh:mm:ss').fromNow();
       }).catch((error) => {
         console.error("Error adding document: ", error);
       });
@@ -88,7 +104,7 @@ export default {
     leaveActivity(activityId, index) {
       db.collection("user_activity").doc(this.$store.getters.user.uid + '_' + activityId).delete().then(() => {
         this.activities[index].joined = false;
-        this.activities[index].status = 'not joined';
+        this.activities[index].myStatus = 'not joined';
         console.log("Document successfully deleted!");
       }).catch((error) => {
         console.error("Error removing document: ", error);
@@ -97,22 +113,22 @@ export default {
   },
   created() {
     db.collection("activities").onSnapshot((querySnapshot) => {
+      this.activities = []
       querySnapshot.forEach(async (doc) => {
         let myActivity = await db.collection('user_activity').doc(this.$store.getters.user.uid + '_' + doc.id).get();
-        console.log(myActivity.data())
         if (myActivity.data() === undefined) {
           this.activities.unshift({
             id: doc.id,
             ...doc.data(),
             joined: false,
-            status: 'not joined',
+            myStatus: 'not joined',
           });
         } else {
           this.activities.unshift({
             id: doc.id,
             ...doc.data(),
             joined: true,
-            status: 'joined ' + moment(myActivity.data().joinedAt.toDate(), 'DD-MM-YYYY hh:mm:ss').fromNow(),
+            myStatus: 'joined ' + moment(myActivity.data().joinedAt.toDate(), 'DD-MM-YYYY hh:mm:ss').fromNow(),
           });
         }
       });

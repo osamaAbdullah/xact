@@ -4,9 +4,27 @@ import {store} from "./vuex";
 
 const routes = [
     {
+        path: '/admin-panel',
+        name: 'Dashboard',
+        component: () => import('./views/Dashboard.vue'),
+        meta: {auth: true, role: 'admin'},
+    },
+    {
         path: '/',
         name: 'Home',
         component: () => import('./views/Home.vue'),
+        meta: {auth: true},
+    },
+    {
+        path: '/settings',
+        name: 'Settings',
+        component: () => import('./views/Settings.vue'),
+        meta: {auth: true},
+    },
+    {
+        path: '/test',
+        name: 'test',
+        component: () => import('./views/Test.vue'),
         meta: {auth: true},
     },
     {
@@ -36,7 +54,7 @@ const routes = [
         path: '/tasks/daily/missed-activities',
         name: 'DailyMissedActivities',
         component: () => import('./views/tasks/DailyMissedActivities.vue'),
-        meta: {auth: true, role: 'admin'},
+        meta: {auth: true},
     },
     {
         path: '/login',
@@ -47,6 +65,16 @@ const routes = [
         path: '/register',
         name: 'Register',
         component: () => import('./views/auth/Register.vue'),
+    },
+    {
+        path: '/pending',
+        name: 'Pending',
+        component: () => import('./views/errors/pending.vue'),
+    },
+    {
+        path: '/blocked',
+        name: 'Blocked',
+        component: () => import('./views/errors/blocked.vue'),
     },
     {
         path: '/402',
@@ -74,6 +102,7 @@ auth.onAuthStateChanged((user) => {
                     uid: user.uid,
                     role: USER.role,
                     name: USER.name,
+                    status: USER.status,
                 })
                 router.push({name: 'Home'})
             })
@@ -81,16 +110,21 @@ auth.onAuthStateChanged((user) => {
 })
 
 router.beforeEach((to, from, next) => {
-    console.log(to.fullPath, 'route changed')
+
+    const user = store.getters.user
+
+    if (['/pending', '/blocked', '/402'].includes(to.fullPath)) return next()
+
+    if (user.status === 'pending') return next({name: 'Pending'})
+    else if (user.status === 'blocked') return next({name: 'Blocked'})
+
     //only admin should see this page
-    if (to.matched.some(record => record.meta.role === 'admin')) {
-        store.getters.user.role === 'admin' ? next() : next({name: 'Unauthorized'})
-        // must be authenticated to see this page
-    } else if (to.matched.some(record => record.meta.auth)) {
-        store.getters.user.authenticated ? next() : next({name: 'Login'})
-    } else {
-        next()
-    }
+    if (to.matched.some(record => record.meta.role === 'admin')) return user.role === 'admin' ? next() : next({name: 'Unauthorized'})
+
+    // must be authenticated to see this page
+    else if (to.matched.some(record => record.meta.auth)) return user.authenticated ? next() : next({name: 'Login'})
+
+    return next()
 });
 
 export default router

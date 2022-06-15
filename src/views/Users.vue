@@ -18,6 +18,9 @@
               <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Role
               </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
               <th scope="col" class="relative px-6 py-3">
                 <span class="sr-only">Transactions</span>
               </th>
@@ -45,6 +48,14 @@
                         class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                   <option value="admin">Admin</option>
                   <option value="user">User</option>
+                </select>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <select v-model="users[index].status" @change="changeStatus(users[index].status, index)"
+                        class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <option value="active">Active</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="pending">Pending</option>
                 </select>
               </td>
               <td class="px-6 font-medium">
@@ -78,14 +89,14 @@
       <div
           class="inline-block align-bottom bg-white rounded-lg text-left bg-green-500 shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full">
         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-          <div class="sm:flex sm:items-start">
+          <div>
             <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
               <div class="flex justify-between">
                 <h3 class="text-lg leading-6 font-medium text-gray-900">
                   {{ users[transaction.index].name }}'s Transactions
                 </h3>
                 <h3 class="text-lg leading-6 font-medium text-gray-900">
-                  {{ balance }}$
+                  {{ balance }} ID
                 </h3>
                 <button @click="resetForm"
                         class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -193,9 +204,9 @@
            aria-hidden="true"></div>
       <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
       <div
-          class="inline-block align-bottom bg-white rounded-lg text-left bg-green-500 shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-2/4">
+          class="inline-block align-bottom bg-white rounded-lg text-left bg-green-500 shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-2/3">
         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-          <div class="sm:flex sm:items-start">
+          <div>
             <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
               <div class="flex justify-between">
                 <h3 class="text-lg leading-6 font-medium text-gray-900">
@@ -282,7 +293,7 @@
       <div
           class="inline-block align-bottom bg-white rounded-lg text-left bg-green-500 shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-          <div class="sm:flex sm:items-start">
+          <div>
             <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
               <h3 class="text-lg leading-6 font-medium text-gray-900">
                 {{ form.title }}
@@ -291,7 +302,7 @@
 
 
                 <div class="mt-10 sm:mt-0">
-                  <div class="md:grid md:grid-cols-3 md:gap-6">
+                  <div>
                     <div class="mt-5 md:mt-0 md:col-span-2">
                       <form
                           @submit.prevent="form.mode === 'create' ? createTransactions(transaction.userId) : updateTransaction()">
@@ -336,16 +347,17 @@
       </div>
     </div>
   </div>
-  <div v-if="missedActivity.visibility" class="fixed z-30 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+  <div v-if="missedActivity.visibility" class="fixed z-30 inset-0 overflow-y-auto" aria-labelledby="modal-title"
+       role="dialog"
        aria-modal="true">
     <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
       <div @click="missedActivity.visibility = false" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
            aria-hidden="true"></div>
       <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
       <div
-          class="inline-block align-bottom bg-white rounded-lg text-left bg-green-500 shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          class="inline-block align-bottom bg-white rounded-lg text-left bg-green-500 shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:2/3">
         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-          <div class="sm:flex sm:items-start">
+          <div>
             <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
               <h3 class="text-lg leading-6 font-medium text-gray-900">
                 missed Days for "{{ missedActivity.activityTitle }}"
@@ -414,14 +426,29 @@ export default {
     changeRole(role, index) {
       db.collection('users').doc(this.users[index].id).update({role}).then().catch()
     },
+    changeStatus(status, index) {
+      if (confirm('Changing user Status will kick out the user from all joined activities, are you sure?')) {
+        db.collection('user_activity')
+            .where('userId', '==', this.users[index].id)
+            .get()
+            .then(userActivities => userActivities.docs)
+            .then(userActivities => userActivities.forEach(userActivity => db.doc(`user_activity/${userActivity.id}`).delete().then().catch()));
+
+        db.collection('users').doc(this.users[index].id).update({status}).then().catch()
+
+      }
+    },
     seeTransactions(index) {
       this.transaction = {visibility: true, userId: this.users[index].id, index}
-      db.collection('transactions').where('userId', '==', this.users[index].id).onSnapshot((querySnapshot) => {
-        this.transactions = [];
-        querySnapshot.forEach((doc) => {
-          this.transactions.unshift({id: doc.id, ...doc.data(), user: this.users[index]});
-        });
-      });
+      db.collection('transactions')
+          .where('userId', '==', this.users[index].id)
+          .orderBy('createdAt')
+          .onSnapshot((querySnapshot) => {
+            this.transactions = [];
+            querySnapshot.forEach((doc) => {
+              this.transactions.unshift({id: doc.id, ...doc.data(), user: this.users[index]});
+            });
+          });
     },
     seeActivities(index) {
       this.activity = {visibility: true, userId: this.users[index].id, index}

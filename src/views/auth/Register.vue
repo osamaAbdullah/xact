@@ -84,17 +84,18 @@ export default {
   }),
   methods: {
     signUp() {
+      this.form.errors = []
       if (this.form.fields.password !== this.form.fields.passwordConfirmation)
         return this.form.errors.push('passwordConfirmation must be the same as password');
 
       auth.createUserWithEmailAndPassword(this.form.fields.email, this.form.fields.password)
           .then((userCredential) => {
-            db.collection("users")
+            db.collection('users')
                 .doc(userCredential.user.uid)
                 .set({
                   name: this.form.fields.name,
                   role: 'user',
-                  lastCheck: new Date(),
+                  status: 'pending',
                   email: this.form.fields.email,
                 });
           })
@@ -103,10 +104,10 @@ export default {
           });
     },
   },
-  created() {
-    if (this.$store.getters.user.authenticated) {
-      this.$router.replace({name: 'Home'})
-    }
-  }
+  // created() {
+  //   if (this.$store.getters.user.authenticated) {
+  //     this.$router.replace({name: 'Home'})
+  //   }
+  // }
 }
 </script>
