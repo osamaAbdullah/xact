@@ -152,10 +152,10 @@
                               </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                              <div class="text-sm text-gray-900">{{ transaction.amount }}</div>
+                              <div class="text-sm text-gray-900" :class="transaction.type === 'cashIn' ? 'text-green-600' : 'text-red-600'">{{ transaction.amount }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                              <div class="text-sm text-gray-900">{{ transaction.type }}</div>
+                              <div class="text-sm text-gray-900" :class="transaction.type === 'cashIn' ? 'text-green-600' : 'text-red-600'">{{ transaction.type }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                               <div class="text-sm text-gray-900">{{ formatDateTime(transaction.createdAt) }}</div>
